@@ -1,0 +1,11 @@
+{
+  "name": "gqbox-sync",
+  "version": "1.0.0",
+  "main": "sync-moysklad.js",
+  "scripts": {
+    "start": "node sync-moysklad.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
