@@ -24,7 +24,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // ============ ЗАПРОС К API ============
-function fetchUrl(url, token) {
+function fetchUrl(url, token, attempt = 1) {
     return new Promise((resolve, reject) => {
         const options = {
             headers: {
@@ -32,9 +32,10 @@ function fetchUrl(url, token) {
                 'Accept': 'application/json;charset=utf-8',
                 'Accept-Encoding': 'gzip',
                 'User-Agent': 'GQbox/1.0'
-            }
+            },
+            timeout: 60000
         };
-        https.get(url, options, (res) => {
+        const req = https.get(url, options, (res) => {
             let chunks = [];
             res.on('data', chunk => chunks.push(chunk));
             res.on('end', () => {
@@ -67,7 +68,30 @@ function fetchUrl(url, token) {
                     }
                 }
             });
-        }).on('error', reject);
+        });
+        
+        req.on('timeout', () => {
+            req.destroy();
+            if (attempt < 3) {
+                console.log(`  Таймаут, попытка ${attempt + 1}...`);
+                setTimeout(() => {
+                    fetchUrl(url, token, attempt + 1).then(resolve).catch(reject);
+                }, 2000);
+            } else {
+                reject(new Error('Превышено время ожидания'));
+            }
+        });
+        
+        req.on('error', (err) => {
+            if (attempt < 3 && err.code === 'ETIMEDOUT') {
+                console.log(`  Ошибка сети, попытка ${attempt + 1}...`);
+                setTimeout(() => {
+                    fetchUrl(url, token, attempt + 1).then(resolve).catch(reject);
+                }, 2000);
+            } else {
+                reject(err);
+            }
+        });
     });
 }
 
